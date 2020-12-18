@@ -1,6 +1,6 @@
 #! node
 
-const { typedef } = require('./index');
+const { typedef, getTypes } = require('./index');
 const { docopt } = require('docopt');
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +9,7 @@ const help = `
 typedef - a utility for generating jsdoc @typedef comments from json objects
 
 Usage:
-  typedef --name=<name> [options]
+  typedef --name=<name> [options] [--extra <typedef>]...
 
 Options:
   -h --help                         Show this screen
@@ -17,6 +17,8 @@ Options:
   -f --file <file>                  Read from a file instead of STDIN
   -o --output <output>              Output to a file instead of STDOUT
   -d --description <description>    A description of the the type
+  --json                            Output a JSON representation of the types
+  -x --extra <typedef>              Accept a SubType Definition
 
 Example:
 
@@ -29,8 +31,28 @@ function run() {
 
   let filepath = options['--file'] || 0;
   const payload = JSON.parse(fs.readFileSync(filepath, 'utf8'));
-  let comment = typedef(options['--name'], description, payload);
 
+  const extraMappings = {};
+  options['--extra'].forEach(element => {
+    const parsed = JSON.parse(element);
+    const stringTypes = Object.keys(parsed).filter(k => parsed[k].regex);
+    for (let typeName of stringTypes) {
+      parsed[typeName].regex = RegExp(parsed[typeName].regex);
+    }
+    Object.assign(extraMappings, parsed);
+  });
+
+  let comment;
+  if (!options['--json']) {
+    comment = typedef(options['--name'], description, payload, extraMappings);
+  } else {
+    comment = JSON.stringify({
+      [options['--name']]: {
+        type: getTypes(payload, extraMappings),
+        description: description
+      }
+    });
+  }
 
   if (!options['--output']) {
     console.log(comment);
