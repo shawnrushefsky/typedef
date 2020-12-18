@@ -1,41 +1,53 @@
-function getTypes(payload) {
+const assert = require("assert").strict;
+
+function getTypes(payload, extraTypeMappings = {}) {
   const type = typeof payload;
-  if (type !== 'object') {
+  if (type !== "object") {
     return type;
   } else if (payload === null) {
-    return '( string | null )';
-  }
-  if (!Array.isArray(payload)) {
-    const types = {};
-    for (const key in payload) {
-      const value = payload[key]
-      types[key] = typeof value;
-      if (typeof value === 'object') {
-        if (Array.isArray(value)) {
-          types[key] = value.map(getTypes);
-        } else if (value === null) {
-          types[key] = '( string | null )';
-        } else {
-          types[key] = getTypes(value);
-        }
-      }
-    }
-
-    return types;
-  } else {
+    return "( string | null )";
+  } else if (Array.isArray(payload)) {
     return payload.map(getTypes);
   }
+
+  for (let typeName in extraTypeMappings) {
+    const otherTypes = Object.assign({}, extraTypeMappings);
+    delete otherTypes[typeName];
+    if (isOfType(payload, extraTypeMappings[typeName].type, otherTypes)) {
+      return typeName;
+    }
+  }
+
+  const types = {};
+  for (const key in payload) {
+    const value = payload[key];
+    types[key] = typeof value;
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        types[key] = value.map((v) => getTypes(v, extraTypeMappings));
+      } else if (value === null) {
+        types[key] = "( string | null )";
+      } else {
+        types[key] = getTypes(value, extraTypeMappings);
+      }
+    }
+  }
+
+  return types;
 }
 
-function getTypeString(payload, currentIndent = '') {
-  if (typeof payload === 'string') {
+function getTypeString(payload, currentIndent = "") {
+  if (typeof payload === "string") {
     return payload;
   } else if (!Array.isArray(payload)) {
-    let comment = '{';
+    let comment = "{";
     for (let key in payload) {
-      comment += `\n${currentIndent + '  '}${key}: ${getTypeString(payload[key], currentIndent + '  ')}`;
+      comment += `\n${currentIndent + "  "}${key}: ${getTypeString(
+        payload[key],
+        currentIndent + "  "
+      )}`;
     }
-    return `${comment}\n${currentIndent}}`
+    return `${comment}\n${currentIndent}}`;
   } else {
     return `Array<${getTypeString(payload[0], currentIndent)}>`;
   }
@@ -43,7 +55,7 @@ function getTypeString(payload, currentIndent = '') {
 
 function wrapAsComment(name, description, typeString) {
   let comment = `/**\n * ${description}\n * @typedef {`;
-  let lines = typeString.split('\n');
+  let lines = typeString.split("\n");
   comment += lines[0];
   for (let line of lines.slice(1)) {
     comment += `\n * ${line}`;
@@ -52,13 +64,39 @@ function wrapAsComment(name, description, typeString) {
   return comment;
 }
 
-function typedef(name, description, payload) {
-  return wrapAsComment(name, description, getTypeString(getTypes(payload)))
+function typedef(name, description, payload, extraTypeMappings = {}) {
+  let comment = wrapAsComment(
+    name,
+    description,
+    getTypeString(getTypes(payload, extraTypeMappings))
+  );
+
+  for (let typeName in extraTypeMappings) {
+    const subTypeComment = wrapAsComment(
+      typeName,
+      extraTypeMappings[typeName].description,
+      getTypeString(extraTypeMappings[typeName].type)
+    );
+    comment += `\n\n${subTypeComment}`;
+  }
+
+  return comment;
 }
 
-module.exports = { 
+function isOfType(obj, type, extraMappings) {
+  const objType = getTypes(obj, extraMappings);
+  try {
+    assert.deepStrictEqual(objType, type);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+module.exports = {
   getTypes,
   getTypeString,
   wrapAsComment,
   typedef,
+  isOfType,
 };
