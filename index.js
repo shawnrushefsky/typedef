@@ -37,7 +37,7 @@ function getTypeString(payload, currentIndent = '') {
     }
     return `${comment}\n${currentIndent}}`
   } else {
-    return `Array<${getTypeString[payload[0]]}>`;
+    return `Array<${getTypeString(payload[0], currentIndent)}>`;
   }
 }
 
