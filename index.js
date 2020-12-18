@@ -41,7 +41,24 @@ function getTypeString(payload, currentIndent = '') {
   }
 }
 
+function wrapAsComment(name, description, typeString) {
+  let comment = `/**\n * ${description}\n * @typedef {`;
+  let lines = typeString.split('\n');
+  comment += lines[0];
+  for (let line of lines.slice(1)) {
+    comment += `\n * ${line}`;
+  }
+  comment += `} ${name}\n */`;
+  return comment;
+}
+
+function typedef(name, description, payload) {
+  return wrapAsComment(name, description, getTypeString(getTypes(payload)))
+}
+
 module.exports = { 
   getTypes,
-  getTypeString
+  getTypeString,
+  wrapAsComment,
+  typedef,
 };
