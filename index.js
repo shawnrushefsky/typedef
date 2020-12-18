@@ -2,6 +2,19 @@ const assert = require("assert").strict;
 
 function getTypes(payload, extraTypeMappings = {}) {
   const type = typeof payload;
+  const stringTypes = Object.keys(extraTypeMappings).filter(
+    (t) => extraTypeMappings[t].regex
+  );
+  const objTypes = Object.keys(extraTypeMappings).filter(
+    (t) => extraTypeMappings[t].type
+  );
+  if (type === "string") {
+    for (let typeName of stringTypes) {
+      if (extraTypeMappings[typeName].regex.test(payload)) {
+        return typeName;
+      }
+    }
+  }
   if (type !== "object") {
     return type;
   } else if (payload === null) {
@@ -10,7 +23,7 @@ function getTypes(payload, extraTypeMappings = {}) {
     return payload.map(getTypes);
   }
 
-  for (let typeName in extraTypeMappings) {
+  for (let typeName of objTypes) {
     const otherTypes = Object.assign({}, extraTypeMappings);
     delete otherTypes[typeName];
     if (isOfType(payload, extraTypeMappings[typeName].type, otherTypes)) {
@@ -21,16 +34,16 @@ function getTypes(payload, extraTypeMappings = {}) {
   const types = {};
   for (const key in payload) {
     const value = payload[key];
-    types[key] = typeof value;
-    if (typeof value === "object") {
-      if (Array.isArray(value)) {
-        types[key] = value.map((v) => getTypes(v, extraTypeMappings));
-      } else if (value === null) {
-        types[key] = "( string | null )";
-      } else {
-        types[key] = getTypes(value, extraTypeMappings);
-      }
-    }
+    types[key] = getTypes(value, extraTypeMappings);
+    // if (typeof value === "object") {
+    //   if (Array.isArray(value)) {
+    //     types[key] = value.map((v) => getTypes(v, extraTypeMappings));
+    //   } else if (value === null) {
+    //     types[key] = "( string | null )";
+    //   } else {
+    //     types[key] = getTypes(value, extraTypeMappings);
+    //   }
+    // }
   }
 
   return types;
@@ -71,7 +84,23 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
     getTypeString(getTypes(payload, extraTypeMappings))
   );
 
-  for (let typeName in extraTypeMappings) {
+  const stringTypes = Object.keys(extraTypeMappings).filter(
+    (t) => extraTypeMappings[t].regex
+  );
+  const objTypes = Object.keys(extraTypeMappings).filter(
+    (t) => extraTypeMappings[t].type
+  );
+
+  for (let typeName of stringTypes) {
+    const subTypeComment = wrapAsComment(
+      typeName,
+      extraTypeMappings[typeName].description,
+      'string'
+    );
+    comment += `\n\n${subTypeComment}`
+  }
+
+  for (let typeName of objTypes) {
     const subTypeComment = wrapAsComment(
       typeName,
       extraTypeMappings[typeName].description,

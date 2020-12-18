@@ -1,4 +1,10 @@
-const { getTypeString, getTypes, wrapAsComment, isOfType, typedef } = require("./index");
+const {
+  getTypeString,
+  getTypes,
+  wrapAsComment,
+  isOfType,
+  typedef,
+} = require("./index");
 
 const pullRequest = require("./fixtures/pull_request.json");
 
@@ -14,20 +20,41 @@ describe("typedef", () => {
     //   )
     // );
 
-    const user = getTypes(pullRequest.user);
-    const extraMappings = {
-      User: { type: user, description: 'A GitHub User Object'},
+    const URI = { 
+      regex: /^https?:\/\//, 
+      description: "A fully qualified URL" 
+    }
+    const User = {
+      type: getTypes(pullRequest.user, {URI}),
+      description: "A GitHub User Object"
     };
-    const label = getTypes(pullRequest.labels[0]);
-    const team = getTypes(pullRequest.requested_teams[0]);
-    const milestone = getTypes(pullRequest.milestone, extraMappings);
-    const repo = getTypes(pullRequest.base.repo, extraMappings);
-    extraMappings.Label= { type: label, description: 'A GitHub Label Object'};
-    extraMappings.Team = { type: team, description: 'A GitHub Team Object'};
-    extraMappings.Milestone = { type: milestone, description: 'A GitHub Milestone Object'}
-    extraMappings.Repository = { type: repo, description: 'A GitHub Repository Object'};
-    const comment = typedef('PullRequest', 'A GitHub Pull Request Object', pullRequest, extraMappings);
+    const DateTime = {
+      regex: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/,
+      description: "A ISO 8601 compliant datetime. YYYY-MM-DDTHH:MM:SSZ",
+    };
+    const Label = { 
+      type: getTypes(pullRequest.labels[0]), 
+      description: "A GitHub Label Object" 
+    };
+    const Team = {
+      type: getTypes(pullRequest.requested_teams[0]),
+      description: "A GitHub Team Object"
+    };
+    const Milestone = {
+      type: getTypes(pullRequest.milestone, { User, URI, DateTime }),
+      description: "A GitHub Milestone Object",
+    };
+    const Repository = {
+      type: getTypes(pullRequest.base.repo, { User, URI, DateTime }),
+      description: "A GitHub Repository Object",
+    };
+    const comment = typedef(
+      "PullRequest",
+      "A GitHub Pull Request Object",
+      pullRequest,
+      { User, URI, DateTime, Label, Team, Milestone, Repository }
+    );
 
     console.log(comment);
-  }).timeout(10000);
+  }).timeout(20000);
 });
