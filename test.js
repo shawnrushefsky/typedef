@@ -33,11 +33,11 @@ describe("typedef", () => {
       description: "A ISO 8601 compliant datetime. YYYY-MM-DDTHH:MM:SSZ",
     };
     const Label = { 
-      type: getTypes(pullRequest.labels[0]), 
+      type: getTypes(pullRequest.labels[0], { URI }), 
       description: "A GitHub Label Object" 
     };
     const Team = {
-      type: getTypes(pullRequest.requested_teams[0]),
+      type: getTypes(pullRequest.requested_teams[0], { URI }),
       description: "A GitHub Team Object"
     };
     const Milestone = {
