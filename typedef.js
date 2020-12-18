@@ -1,4 +1,4 @@
-#! node
+#! /usr/bin/env node
 
 const { typedef, getTypes } = require('./index');
 const { docopt } = require('docopt');

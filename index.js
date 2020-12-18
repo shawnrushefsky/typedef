@@ -20,7 +20,7 @@ function getTypes(payload, extraTypeMappings = {}) {
   } else if (payload === null) {
     return "( string | null )";
   } else if (Array.isArray(payload)) {
-    return payload.map(getTypes);
+    return payload.map(elem => getTypes(elem, extraTypeMappings));
   }
 
   for (let typeName of objTypes) {
@@ -35,15 +35,6 @@ function getTypes(payload, extraTypeMappings = {}) {
   for (const key in payload) {
     const value = payload[key];
     types[key] = getTypes(value, extraTypeMappings);
-    // if (typeof value === "object") {
-    //   if (Array.isArray(value)) {
-    //     types[key] = value.map((v) => getTypes(v, extraTypeMappings));
-    //   } else if (value === null) {
-    //     types[key] = "( string | null )";
-    //   } else {
-    //     types[key] = getTypes(value, extraTypeMappings);
-    //   }
-    // }
   }
 
   return types;
