@@ -30,4 +30,4 @@ Example:
 
 ## Examples
 
-`./pr-types.sh` is a script that demonstrates the user of `typedef` on a large complex object with several contained subtypes (A GitHub Pull Request Object.).
+`./pr-types.sh` is a script that demonstrates the use of `typedef` on a large complex object with several contained subtypes (A GitHub Pull Request Object.).
