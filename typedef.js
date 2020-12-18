@@ -17,6 +17,10 @@ Options:
   -f --file <file>                  Read from a file instead of STDIN
   -o --output <output>              Output to a file instead of STDOUT
   -d --description <description>    A description of the the type
+
+Example:
+
+  cat pull_request.json | typedef -n PullRequest >> types.js
 `
 
 function run() {
