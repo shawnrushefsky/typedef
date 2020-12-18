@@ -1,0 +1,22 @@
+{
+  "name": "typedef",
+  "version": "1.0.0",
+  "description": "Generates a JSDoc @typedef from a given JSON payload",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "jsdoc",
+    "typedef",
+    "json",
+    "types"
+  ],
+  "author": "Shawn Rushefsky",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1"
+  }
+}
