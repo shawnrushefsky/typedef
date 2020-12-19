@@ -31,7 +31,7 @@ function getTypes(payload, extraTypeMappings = {}) {
   for (const typeName of objTypes) {
     const otherTypes = Object.assign({}, extraTypeMappings);
     delete otherTypes[typeName];
-    if (isOfType(payload, extraTypeMappings[typeName].hydrated, otherTypes)) {
+    if (isOfType(payload, extraTypeMappings[typeName].hydrated)) {
       return typeName;
     }
   }
