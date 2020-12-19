@@ -53,3 +53,65 @@ describe("typedef", () => {
     expect(comment).to.equal(prTypes);
   }).timeout(20000);
 });
+
+describe.only('hydrate', () => {
+  it('reconstructs a type object using only primitive types', () => {
+    const URI = { 
+      regex: /^https?:\/\//, 
+      description: "A fully qualified URL" 
+    }
+    const User = {
+      type: getTypes(pullRequest.user, {URI}),
+      description: "A GitHub User Object"
+    };
+    const DateTime = {
+      regex: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/,
+      description: "A ISO 8601 compliant datetime. YYYY-MM-DDTHH:MM:SSZ",
+    };
+    const Label = { 
+      type: getTypes(pullRequest.labels[0], { URI }), 
+      description: "A GitHub Label Object" 
+    };
+    const Team = {
+      type: getTypes(pullRequest.requested_teams[0], { URI }),
+      description: "A GitHub Team Object"
+    };
+    const Milestone = {
+      type: getTypes(pullRequest.milestone, { User, URI, DateTime }),
+      description: "A GitHub Milestone Object",
+    };
+    const Repository = {
+      type: getTypes(pullRequest.base.repo, { User, URI, DateTime }),
+      description: "A GitHub Repository Object",
+    };
+    const PullRequest = {
+      type: getTypes(pullRequest, {
+        URI,
+        User,
+        DateTime,
+        Label,
+        Team,
+        Milestone,
+        Repository
+      }),
+      description: 'A GitHub Pull Request Object'
+    };
+    
+    const RawPullRequest = {
+      type: getTypes(pullRequest),
+      description: 'A GitHub Pull Request Object'
+    };
+
+    const hydrated = hydrate(PullRequest, {
+      URI,
+      User,
+      DateTime,
+      Label,
+      Team,
+      Milestone,
+      Repository
+    });
+
+    expect(hydrated).to.deep.equal(RawPullRequest);
+  }).timeout(20000);
+})

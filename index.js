@@ -120,18 +120,20 @@ function isOfType(obj, type, extraMappings) {
   }
 }
 
-function hydrate(payload, extraMappings) {
+function hydrate(payload, extraMappings = {}) {
   const objTypes = Object.keys(extraMappings).filter(
     (t) => extraMappings[t].type
   );
-  const stringTypes = Object.keys(extraTypeMappings).filter(
-    (t) => extraTypeMappings[t].regex
+  const stringTypes = Object.keys(extraMappings).filter(
+    (t) => extraMappings[t].regex
   );
 
   const type = typeof payload;
-  if (type === 'string' && objTypes.includes(type)) {
-    return extraMappings[type].type;
-  } else if (type === 'string' && stringTypes.includes(type)) {
+  if (type === 'string' && objTypes.includes(payload)) {
+    const otherTypes = Object.assign({}, extraMappings);
+    delete otherTypes[payload];
+    return hydrate(extraMappings[payload].type, otherTypes);
+  } else if (type === 'string' && stringTypes.includes(payload)) {
     return 'string';
   }
 
@@ -144,7 +146,7 @@ function hydrate(payload, extraMappings) {
   const types = {};
   for (const key in payload) {
     const value = payload[key];
-    types[key] = hydrate(value, extraTypeMappings);
+    types[key] = hydrate(value, extraMappings);
   }
 
   return types;
