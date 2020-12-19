@@ -16,7 +16,7 @@ const assert = require("assert").strict;
  * Returns a schema object from a JSON serializable object
  * @param {Object} payload Any JSON-serializable object
  * @param {{[TypeName: string]: TypeSummary}} extraTypeMappings
- * 
+ *
  * @returns {Schema}
  */
 function getTypes(payload, extraTypeMappings = {}) {
@@ -33,11 +33,14 @@ function getTypes(payload, extraTypeMappings = {}) {
    * This provides a substantial performance improvement.
    */
   objTypes
-    .filter(typeName => !extraTypeMappings[typeName].hydrated)
-    .forEach(typeName => extraTypeMappings[typeName].hydrated = hydrate(
-      extraTypeMappings[typeName].type,
-      extraTypeMappings
-    ));
+    .filter((typeName) => !extraTypeMappings[typeName].hydrated)
+    .forEach(
+      (typeName) =>
+        (extraTypeMappings[typeName].hydrated = hydrate(
+          extraTypeMappings[typeName].type,
+          extraTypeMappings
+        ))
+    );
 
   /**
    * Identify special string types
@@ -56,7 +59,7 @@ function getTypes(payload, extraTypeMappings = {}) {
     // TODO: Use multiple sample documents to infer this more accurately
     return "( string | null )";
   } else if (Array.isArray(payload)) {
-    return payload.map((elem) => getTypes(elem, extraTypeMappings));
+    return [getTypes(payload[0], extraTypeMappings)];
   }
 
   /**
@@ -84,9 +87,9 @@ function getTypes(payload, extraTypeMappings = {}) {
 
 /**
  * Returns an un-commented jsdoc typedef string
- * @param {Schema} payload 
+ * @param {Schema} payload
  * @param {string} currentIndent
- * 
+ *
  * @return {string}
  */
 function getTypeString(payload, currentIndent = "") {
@@ -108,10 +111,10 @@ function getTypeString(payload, currentIndent = "") {
 
 /**
  * Wraps a JSDoc typedef string as a comment
- * @param {string} name 
- * @param {string} description 
- * @param {string} typeString 
- * 
+ * @param {string} name
+ * @param {string} description
+ * @param {string} typeString
+ *
  * @returns {string}
  */
 function wrapAsComment(name, description, typeString) {
@@ -135,11 +138,11 @@ function wrapAsComment(name, description, typeString) {
 /**
  * Generates typedef comments for a payload, and all of the
  * subtypes included in extraTypeMappings
- * @param {string} name 
- * @param {string} description 
- * @param {Object} payload 
+ * @param {string} name
+ * @param {string} description
+ * @param {Object} payload
  * @param {{[TypeName: string]: TypeSummary}} extraTypeMappings
- * 
+ *
  * @returns {string}
  */
 function typedef(name, description, payload, extraTypeMappings = {}) {
@@ -156,7 +159,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
     (t) => extraTypeMappings[t].type
   );
 
-  stringTypes.forEach(typeName => {
+  stringTypes.forEach((typeName) => {
     const subTypeComment = wrapAsComment(
       typeName,
       extraTypeMappings[typeName].description,
@@ -165,7 +168,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
     comment += `\n\n${subTypeComment}`;
   });
 
-  objTypes.forEach(typeName => {
+  objTypes.forEach((typeName) => {
     const subTypeComment = wrapAsComment(
       typeName,
       extraTypeMappings[typeName].description,
@@ -179,7 +182,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
 
 /**
  * Determines if a given object comforms to a type definition
- * @param {Object} obj 
+ * @param {Object} obj
  * @param {Schema} type A fully hydrated schema
  */
 function isOfType(obj, type) {
@@ -195,9 +198,9 @@ function isOfType(obj, type) {
 /**
  * Takes a schema that includes subtypes and returns a schema
  * that includes only primitive values.
- * @param {Schema} payload 
+ * @param {Schema} payload
  * @param {{[TypeName: string]: TypeSummary}} extraMappings
- * 
+ *
  * @returns {Schema}
  */
 function hydrate(payload, extraMappings = {}) {
