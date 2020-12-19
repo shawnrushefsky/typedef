@@ -9,7 +9,7 @@ function getTypes(payload, extraTypeMappings = {}) {
     (t) => extraTypeMappings[t].type
   );
   if (type === "string") {
-    for (let typeName of stringTypes) {
+    for (const typeName of stringTypes) {
       if (extraTypeMappings[typeName].regex.test(payload)) {
         return typeName;
       }
@@ -23,7 +23,7 @@ function getTypes(payload, extraTypeMappings = {}) {
     return payload.map(elem => getTypes(elem, extraTypeMappings));
   }
 
-  for (let typeName of objTypes) {
+  for (const typeName of objTypes) {
     const otherTypes = Object.assign({}, extraTypeMappings);
     delete otherTypes[typeName];
     if (isOfType(payload, extraTypeMappings[typeName].type, otherTypes)) {
@@ -45,7 +45,7 @@ function getTypeString(payload, currentIndent = "") {
     return payload;
   } else if (!Array.isArray(payload)) {
     let comment = "{";
-    for (let key in payload) {
+    for (const key in payload) {
       comment += `\n${currentIndent + "  "}${key}: ${getTypeString(
         payload[key],
         currentIndent + "  "
@@ -58,12 +58,19 @@ function getTypeString(payload, currentIndent = "") {
 }
 
 function wrapAsComment(name, description, typeString) {
-  let comment = `/**\n * ${description}\n * @typedef {`;
-  let lines = typeString.split("\n");
-  comment += lines[0];
-  for (let line of lines.slice(1)) {
+  const descriptionLines = description.split('\n');
+  let comment = '/**';
+  descriptionLines.forEach(line => {
     comment += `\n * ${line}`;
-  }
+  });
+  comment += '\n * @typedef {';
+  
+  const lines = typeString.split("\n");
+  comment += lines[0];
+  lines.slice(1).forEach(line => {
+    comment += `\n * ${line}`;
+  });
+
   comment += `} ${name}\n */`;
   return comment;
 }
@@ -82,7 +89,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
     (t) => extraTypeMappings[t].type
   );
 
-  for (let typeName of stringTypes) {
+  for (const typeName of stringTypes) {
     const subTypeComment = wrapAsComment(
       typeName,
       extraTypeMappings[typeName].description,
@@ -91,7 +98,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
     comment += `\n\n${subTypeComment}`
   }
 
-  for (let typeName of objTypes) {
+  for (const typeName of objTypes) {
     const subTypeComment = wrapAsComment(
       typeName,
       extraTypeMappings[typeName].description,
@@ -113,10 +120,41 @@ function isOfType(obj, type, extraMappings) {
   }
 }
 
+function hydrate(payload, extraMappings) {
+  const objTypes = Object.keys(extraMappings).filter(
+    (t) => extraMappings[t].type
+  );
+  const stringTypes = Object.keys(extraTypeMappings).filter(
+    (t) => extraTypeMappings[t].regex
+  );
+
+  const type = typeof payload;
+  if (type === 'string' && objTypes.includes(type)) {
+    return extraMappings[type].type;
+  } else if (type === 'string' && stringTypes.includes(type)) {
+    return 'string';
+  }
+
+  if (type !== "object") {
+    return payload;
+  } else if (Array.isArray(payload)) {
+    return payload.map(elem => hydrate(elem, extraMappings));
+  }
+
+  const types = {};
+  for (const key in payload) {
+    const value = payload[key];
+    types[key] = hydrate(value, extraTypeMappings);
+  }
+
+  return types;
+}
+
 module.exports = {
   getTypes,
   getTypeString,
   wrapAsComment,
   typedef,
   isOfType,
+  hydrate
 };

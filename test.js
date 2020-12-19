@@ -4,22 +4,17 @@ const {
   wrapAsComment,
   isOfType,
   typedef,
+  hydrate
 } = require("./index");
+const fs = require('fs');
+const path = require('path');
+const { expect } = require('chai');
 
 const pullRequest = require("./fixtures/pull_request.json");
+const prTypes = fs.readFileSync(path.join(__dirname, 'fixtures', 'pr-typedefs.js'), 'utf-8').trim();
 
 describe("typedef", () => {
   it("infers a @typedef comment from a parsed JSON payload", () => {
-    // const comment = typedef('PullRequest', 'A GitHub Pull Request Object', pullRequest);
-    // console.log(comment);
-    // console.log(
-    //   wrapAsComment(
-    //     "PullRequest",
-    //     "A GitHub Pull Request Object",
-    //     getTypeString(getTypes(pullRequest))
-    //   )
-    // );
-
     const URI = { 
       regex: /^https?:\/\//, 
       description: "A fully qualified URL" 
@@ -55,6 +50,6 @@ describe("typedef", () => {
       { User, URI, DateTime, Label, Team, Milestone, Repository }
     );
 
-    console.log(comment);
+    expect(comment).to.equal(prTypes);
   }).timeout(20000);
 });
