@@ -8,6 +8,11 @@ function getTypes(payload, extraTypeMappings = {}) {
   const objTypes = Object.keys(extraTypeMappings).filter(
     (t) => extraTypeMappings[t].type
   );
+  for (const typeName of objTypes) {
+    if (!extraTypeMappings[typeName].hydrated) {
+      extraTypeMappings[typeName].hydrated = hydrate(extraTypeMappings[typeName].type, extraTypeMappings);
+    }
+  }
   if (type === "string") {
     for (const typeName of stringTypes) {
       if (extraTypeMappings[typeName].regex.test(payload)) {
@@ -26,7 +31,7 @@ function getTypes(payload, extraTypeMappings = {}) {
   for (const typeName of objTypes) {
     const otherTypes = Object.assign({}, extraTypeMappings);
     delete otherTypes[typeName];
-    if (isOfType(payload, extraTypeMappings[typeName].type, otherTypes)) {
+    if (isOfType(payload, extraTypeMappings[typeName].hydrated, otherTypes)) {
       return typeName;
     }
   }
@@ -110,8 +115,8 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
   return comment;
 }
 
-function isOfType(obj, type, extraMappings) {
-  const objType = getTypes(obj, extraMappings);
+function isOfType(obj, type) {
+  const objType = getTypes(obj);
   try {
     assert.deepStrictEqual(objType, type);
     return true;

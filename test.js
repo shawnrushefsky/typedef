@@ -54,7 +54,7 @@ describe("typedef", () => {
   }).timeout(20000);
 });
 
-describe.only('hydrate', () => {
+describe('hydrate', () => {
   it('reconstructs a type object using only primitive types', () => {
     const URI = { 
       regex: /^https?:\/\//, 
