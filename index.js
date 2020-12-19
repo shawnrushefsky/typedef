@@ -10,7 +10,10 @@ function getTypes(payload, extraTypeMappings = {}) {
   );
   for (const typeName of objTypes) {
     if (!extraTypeMappings[typeName].hydrated) {
-      extraTypeMappings[typeName].hydrated = hydrate(extraTypeMappings[typeName].type, extraTypeMappings);
+      extraTypeMappings[typeName].hydrated = hydrate(
+        extraTypeMappings[typeName].type,
+        extraTypeMappings
+      );
     }
   }
   if (type === "string") {
@@ -25,7 +28,7 @@ function getTypes(payload, extraTypeMappings = {}) {
   } else if (payload === null) {
     return "( string | null )";
   } else if (Array.isArray(payload)) {
-    return payload.map(elem => getTypes(elem, extraTypeMappings));
+    return payload.map((elem) => getTypes(elem, extraTypeMappings));
   }
 
   for (const typeName of objTypes) {
@@ -63,16 +66,16 @@ function getTypeString(payload, currentIndent = "") {
 }
 
 function wrapAsComment(name, description, typeString) {
-  const descriptionLines = description.split('\n');
-  let comment = '/**';
-  descriptionLines.forEach(line => {
+  const descriptionLines = description.split("\n");
+  let comment = "/**";
+  descriptionLines.forEach((line) => {
     comment += `\n * ${line}`;
   });
-  comment += '\n * @typedef {';
-  
+  comment += "\n * @typedef {";
+
   const lines = typeString.split("\n");
   comment += lines[0];
-  lines.slice(1).forEach(line => {
+  lines.slice(1).forEach((line) => {
     comment += `\n * ${line}`;
   });
 
@@ -98,9 +101,9 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
     const subTypeComment = wrapAsComment(
       typeName,
       extraTypeMappings[typeName].description,
-      'string'
+      "string"
     );
-    comment += `\n\n${subTypeComment}`
+    comment += `\n\n${subTypeComment}`;
   }
 
   for (const typeName of objTypes) {
@@ -134,18 +137,18 @@ function hydrate(payload, extraMappings = {}) {
   );
 
   const type = typeof payload;
-  if (type === 'string' && objTypes.includes(payload)) {
+  if (type === "string" && objTypes.includes(payload)) {
     const otherTypes = Object.assign({}, extraMappings);
     delete otherTypes[payload];
     return hydrate(extraMappings[payload].type, otherTypes);
-  } else if (type === 'string' && stringTypes.includes(payload)) {
-    return 'string';
+  } else if (type === "string" && stringTypes.includes(payload)) {
+    return "string";
   }
 
   if (type !== "object") {
     return payload;
   } else if (Array.isArray(payload)) {
-    return payload.map(elem => hydrate(elem, extraMappings));
+    return payload.map((elem) => hydrate(elem, extraMappings));
   }
 
   const types = {};
@@ -163,5 +166,5 @@ module.exports = {
   wrapAsComment,
   typedef,
   isOfType,
-  hydrate
+  hydrate,
 };

@@ -12,6 +12,7 @@
     "json",
     "types"
   ],
+  "repository": "github:shawnrushefsky/typedef",
   "author": "Shawn Rushefsky",
   "license": "MIT",
   "dependencies": {
