@@ -53,7 +53,7 @@ describe("typedef", () => {
     );
 
     expect(comment).to.equal(prTypes);
-  }).timeout(20000);
+  });
 });
 
 describe("hydrate", () => {
@@ -115,5 +115,5 @@ describe("hydrate", () => {
     });
 
     expect(hydrated).to.deep.equal(RawPullRequest);
-  }).timeout(20000);
+  });
 });
