@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-const { typedef, getTypes } = require("./index");
+const { typedef, getTypes } = require("./src/index");
 const { docopt } = require("docopt");
 const fs = require("fs");
 const path = require("path");

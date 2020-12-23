@@ -5,7 +5,7 @@ const {
   isOfType,
   typedef,
   hydrate,
-} = require("./index");
+} = require("../src/index");
 const fs = require("fs");
 const path = require("path");
 const { expect } = require("chai");
