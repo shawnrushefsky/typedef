@@ -12,9 +12,8 @@ const assert = require("assert").strict;
  * @typedef {Object} Schema
  */
 
-
 const schemaDefaults = {
-  schemas: {}
+  schemas: {},
 };
 
 /**
@@ -29,12 +28,8 @@ function getSchema(payload, options = {}) {
   options = { ...schemaDefaults, ...options };
   const { schemas } = options;
   const type = typeof payload;
-  const stringTypes = Object.keys(schemas).filter(
-    (t) => schemas[t].regex
-  );
-  const objTypes = Object.keys(schemas).filter(
-    (t) => schemas[t].type
-  );
+  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].regex);
+  const objTypes = Object.keys(schemas).filter((t) => schemas[t].type);
 
   /**
    * Cache the fully hydrated schema for each type.
@@ -44,10 +39,7 @@ function getSchema(payload, options = {}) {
     .filter((typeName) => !schemas[typeName].hydrated)
     .forEach(
       (typeName) =>
-        (schemas[typeName].hydrated = hydrate(
-          schemas[typeName].type,
-          schemas
-        ))
+        (schemas[typeName].hydrated = hydrate(schemas[typeName].type, schemas))
     );
 
   /**
@@ -143,9 +135,8 @@ function wrapAsTypedefComment(name, description, typeString) {
   return comment;
 }
 
-
 const serializeDefaults = {
-  schemas: {}
+  schemas: {},
 };
 
 /**
@@ -167,12 +158,8 @@ function serialize(name, description, payload, options = {}) {
     serializeSchema(getSchema(payload, { schemas }))
   );
 
-  const stringTypes = Object.keys(schemas).filter(
-    (t) => schemas[t].regex
-  );
-  const objTypes = Object.keys(schemas).filter(
-    (t) => schemas[t].type
-  );
+  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].regex);
+  const objTypes = Object.keys(schemas).filter((t) => schemas[t].type);
 
   stringTypes.forEach((typeName) => {
     const subTypeComment = wrapAsTypedefComment(
@@ -219,12 +206,8 @@ function isOfType(obj, type) {
  * @returns {Schema}
  */
 function hydrate(payload, schemas = {}) {
-  const objTypes = Object.keys(schemas).filter(
-    (t) => schemas[t].type
-  );
-  const stringTypes = Object.keys(schemas).filter(
-    (t) => schemas[t].regex
-  );
+  const objTypes = Object.keys(schemas).filter((t) => schemas[t].type);
+  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].regex);
 
   const type = typeof payload;
   if (type === "string" && objTypes.includes(payload)) {
@@ -250,7 +233,95 @@ function hydrate(payload, schemas = {}) {
   return types;
 }
 
-function deserialize(comment, options){}
+function deserialize(comment) {
+  const schemas = {};
+  const commentRegex = /\/\*\*\s+\*\s+(?<description>.*?)\s+\*\s+@typedef\s+{(?<type>.*?)}\s+(?<typeName>\w+)\s+\*\//gms;
+
+  let matches;
+  while ((matches = commentRegex.exec(comment))) {
+    const { description, type, typeName } = matches.groups;
+    schemas[typeName] = { description, schema: getSchemaFromType(type) };
+  }
+
+  return schemas;
+}
+
+function getSchemaFromType(rawTypeString) {
+  if (rawTypeString.toLowerCase() === "string") {
+    return "string";
+  } else {
+    return parseObjectString(getObjectString(rawTypeString));
+  }
+}
+
+function getObjectString(rawTypeString) {
+  return rawTypeString
+    .replace(/{\s+/g, "{")
+    .replace(/\s*\*?\s*}/g, "}")
+    .replace(/\n/g, ",")
+    .replace(/[\s\*]/g, "");
+}
+
+const arrayType = /array<(?<type>\w+)>/i;
+function parseObjectString(objString) {
+  const result = {};
+  let buffer = "";
+  let key;
+  let stack = [];
+  let current = result;
+  for (let i = 1; i < objString.length; i++) {
+    const char = objString[i];
+    switch (char) {
+      case ":":
+        key = buffer;
+        buffer = "";
+        break;
+      case ",":
+        const match = arrayType.exec(buffer);
+        current = getNode(result, stack);
+        if (match) {
+          const { type } = match.groups;
+          current[key] = [type];
+        } else if (buffer) {
+          current[key] = buffer;
+        }
+        buffer = "";
+        // key = "";
+        break;
+      case "{":
+        current = getNode(result, stack);
+        stack.push(key);
+        current[key] = {};
+        current = current[key];
+        buffer = "";
+        // key = "";
+        break;
+      case "}":
+        if (buffer) {
+          current[key] = buffer;
+        }
+        stack.pop();
+        // 
+        buffer = "";
+        // key = "";
+        break;
+      default:
+        buffer += char;
+        break;
+    }
+  }
+
+  return result;
+}
+
+function getNode(obj, stack) {
+  let current = obj;
+  for (let key of stack) {
+    current = current[key];
+  }
+
+  return current;
+}
 
 module.exports = {
   getSchema,
