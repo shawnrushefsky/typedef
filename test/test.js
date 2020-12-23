@@ -1,9 +1,6 @@
 const {
-  getTypeString,
-  getTypes,
-  wrapAsComment,
-  isOfType,
-  typedef,
+  getSchema,
+  serialize,
   hydrate,
 } = require("../src/index");
 const fs = require("fs");
@@ -22,7 +19,7 @@ describe("typedef", () => {
       description: "A fully qualified URL",
     };
     const User = {
-      type: getTypes(pullRequest.user, { URI }),
+      type: getSchema(pullRequest.user, { URI }),
       description: "A GitHub User Object",
     };
     const DateTime = {
@@ -30,22 +27,22 @@ describe("typedef", () => {
       description: "A ISO 8601 compliant datetime. YYYY-MM-DDTHH:MM:SSZ",
     };
     const Label = {
-      type: getTypes(pullRequest.labels[0], { URI }),
+      type: getSchema(pullRequest.labels[0], { URI }),
       description: "A GitHub Label Object",
     };
     const Team = {
-      type: getTypes(pullRequest.requested_teams[0], { URI }),
+      type: getSchema(pullRequest.requested_teams[0], { URI }),
       description: "A GitHub Team Object",
     };
     const Milestone = {
-      type: getTypes(pullRequest.milestone, { User, URI, DateTime }),
+      type: getSchema(pullRequest.milestone, { User, URI, DateTime }),
       description: "A GitHub Milestone Object",
     };
     const Repository = {
-      type: getTypes(pullRequest.base.repo, { User, URI, DateTime }),
+      type: getSchema(pullRequest.base.repo, { User, URI, DateTime }),
       description: "A GitHub Repository Object",
     };
-    const comment = typedef(
+    const comment = serialize(
       "PullRequest",
       "A GitHub Pull Request Object",
       pullRequest,
@@ -63,7 +60,7 @@ describe("hydrate", () => {
       description: "A fully qualified URL",
     };
     const User = {
-      type: getTypes(pullRequest.user, { URI }),
+      type: getSchema(pullRequest.user, { URI }),
       description: "A GitHub User Object",
     };
     const DateTime = {
@@ -71,23 +68,23 @@ describe("hydrate", () => {
       description: "A ISO 8601 compliant datetime. YYYY-MM-DDTHH:MM:SSZ",
     };
     const Label = {
-      type: getTypes(pullRequest.labels[0], { URI }),
+      type: getSchema(pullRequest.labels[0], { URI }),
       description: "A GitHub Label Object",
     };
     const Team = {
-      type: getTypes(pullRequest.requested_teams[0], { URI }),
+      type: getSchema(pullRequest.requested_teams[0], { URI }),
       description: "A GitHub Team Object",
     };
     const Milestone = {
-      type: getTypes(pullRequest.milestone, { User, URI, DateTime }),
+      type: getSchema(pullRequest.milestone, { User, URI, DateTime }),
       description: "A GitHub Milestone Object",
     };
     const Repository = {
-      type: getTypes(pullRequest.base.repo, { User, URI, DateTime }),
+      type: getSchema(pullRequest.base.repo, { User, URI, DateTime }),
       description: "A GitHub Repository Object",
     };
     const PullRequest = {
-      type: getTypes(pullRequest, {
+      type: getSchema(pullRequest, {
         URI,
         User,
         DateTime,
@@ -100,7 +97,7 @@ describe("hydrate", () => {
     };
 
     const RawPullRequest = {
-      type: getTypes(pullRequest),
+      type: getSchema(pullRequest),
       description: "A GitHub Pull Request Object",
     };
 

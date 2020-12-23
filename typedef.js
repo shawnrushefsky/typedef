@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-const { typedef, getTypes } = require("./src/index");
+const { serialize, getSchema } = require("./src/index");
 const { docopt } = require("docopt");
 const fs = require("fs");
 const path = require("path");
@@ -46,11 +46,11 @@ function run() {
 
   let comment;
   if (!options["--json"]) {
-    comment = typedef(options["--name"], description, payload, extraMappings);
+    comment = serialize(options["--name"], description, payload, extraMappings);
   } else {
     comment = JSON.stringify({
       [options["--name"]]: {
-        type: getTypes(payload, extraMappings),
+        type: getSchema(payload, extraMappings),
         description: description,
       },
     });

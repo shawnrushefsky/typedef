@@ -19,7 +19,7 @@ const assert = require("assert").strict;
  *
  * @returns {Schema}
  */
-function getTypes(payload, extraTypeMappings = {}) {
+function getSchema(payload, extraTypeMappings = {}) {
   const type = typeof payload;
   const stringTypes = Object.keys(extraTypeMappings).filter(
     (t) => extraTypeMappings[t].regex
@@ -59,7 +59,7 @@ function getTypes(payload, extraTypeMappings = {}) {
     // TODO: Use multiple sample documents to infer this more accurately
     return "( string | null )";
   } else if (Array.isArray(payload)) {
-    return [getTypes(payload[0], extraTypeMappings)];
+    return [getSchema(payload[0], extraTypeMappings)];
   }
 
   /**
@@ -79,7 +79,7 @@ function getTypes(payload, extraTypeMappings = {}) {
   const types = {};
   for (const key in payload) {
     const value = payload[key];
-    types[key] = getTypes(value, extraTypeMappings);
+    types[key] = getSchema(value, extraTypeMappings);
   }
 
   return types;
@@ -92,20 +92,20 @@ function getTypes(payload, extraTypeMappings = {}) {
  *
  * @return {string}
  */
-function getTypeString(payload, currentIndent = "") {
+function serializeSchema(payload, currentIndent = "") {
   if (typeof payload === "string") {
     return payload;
   } else if (!Array.isArray(payload)) {
     let comment = "{";
     for (const key in payload) {
-      comment += `\n${currentIndent + "  "}${key}: ${getTypeString(
+      comment += `\n${currentIndent + "  "}${key}: ${serializeSchema(
         payload[key],
         currentIndent + "  "
       )}`;
     }
     return `${comment}\n${currentIndent}}`;
   } else {
-    return `Array<${getTypeString(payload[0], currentIndent)}>`;
+    return `Array<${serializeSchema(payload[0], currentIndent)}>`;
   }
 }
 
@@ -117,7 +117,7 @@ function getTypeString(payload, currentIndent = "") {
  *
  * @returns {string}
  */
-function wrapAsComment(name, description, typeString) {
+function wrapAsTypedefComment(name, description, typeString) {
   const descriptionLines = description.split("\n");
   let comment = "/**";
   descriptionLines.forEach((line) => {
@@ -145,11 +145,11 @@ function wrapAsComment(name, description, typeString) {
  *
  * @returns {string}
  */
-function typedef(name, description, payload, extraTypeMappings = {}) {
-  let comment = wrapAsComment(
+function serialize(name, description, payload, extraTypeMappings = {}) {
+  let comment = wrapAsTypedefComment(
     name,
     description,
-    getTypeString(getTypes(payload, extraTypeMappings))
+    serializeSchema(getSchema(payload, extraTypeMappings))
   );
 
   const stringTypes = Object.keys(extraTypeMappings).filter(
@@ -160,7 +160,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
   );
 
   stringTypes.forEach((typeName) => {
-    const subTypeComment = wrapAsComment(
+    const subTypeComment = wrapAsTypedefComment(
       typeName,
       extraTypeMappings[typeName].description,
       "string"
@@ -169,10 +169,10 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
   });
 
   objTypes.forEach((typeName) => {
-    const subTypeComment = wrapAsComment(
+    const subTypeComment = wrapAsTypedefComment(
       typeName,
       extraTypeMappings[typeName].description,
-      getTypeString(extraTypeMappings[typeName].type)
+      serializeSchema(extraTypeMappings[typeName].type)
     );
     comment += `\n\n${subTypeComment}`;
   });
@@ -186,7 +186,7 @@ function typedef(name, description, payload, extraTypeMappings = {}) {
  * @param {Schema} type A fully hydrated schema
  */
 function isOfType(obj, type) {
-  const objType = getTypes(obj);
+  const objType = getSchema(obj);
   try {
     assert.deepStrictEqual(objType, type);
     return true;
@@ -236,10 +236,10 @@ function hydrate(payload, extraMappings = {}) {
 }
 
 module.exports = {
-  getTypes,
-  getTypeString,
-  wrapAsComment,
-  typedef,
+  getSchema,
+  serializeSchema,
+  wrapAsTypedefComment,
+  serialize,
   isOfType,
   hydrate,
 };
