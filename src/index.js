@@ -316,7 +316,7 @@ function parseObjectString(objString) {
 
 function getNode(obj, stack) {
   let current = obj;
-  for (let key of stack) {
+  for (const key of stack) {
     current = current[key];
   }
 
