@@ -34,23 +34,23 @@ function run() {
   let filepath = options["--file"] || 0;
   const payload = JSON.parse(fs.readFileSync(filepath, "utf8"));
 
-  const extraMappings = {};
+  const schemas = {};
   options["--extra"].forEach((element) => {
     const parsed = JSON.parse(element);
     const stringTypes = Object.keys(parsed).filter((k) => parsed[k].regex);
     for (let typeName of stringTypes) {
       parsed[typeName].regex = RegExp(parsed[typeName].regex);
     }
-    Object.assign(extraMappings, parsed);
+    Object.assign(schemas, parsed);
   });
 
   let comment;
   if (!options["--json"]) {
-    comment = serialize(options["--name"], description, payload, extraMappings);
+    comment = serialize(options["--name"], description, payload, { schemas });
   } else {
     comment = JSON.stringify({
       [options["--name"]]: {
-        type: getSchema(payload, extraMappings),
+        type: getSchema(payload, { schemas }),
         description: description,
       },
     });

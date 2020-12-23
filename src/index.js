@@ -12,20 +12,28 @@ const assert = require("assert").strict;
  * @typedef {Object} Schema
  */
 
+
+const schemaDefaults = {
+  schemas: {}
+};
+
 /**
  * Returns a schema object from a JSON serializable object
  * @param {Object} payload Any JSON-serializable object
- * @param {{[TypeName: string]: TypeSummary}} extraTypeMappings
+ * @param {Object} options
+ * @param {{[TypeName: string]: TypeSummary}} options.schemas
  *
  * @returns {Schema}
  */
-function getSchema(payload, extraTypeMappings = {}) {
+function getSchema(payload, options = {}) {
+  options = { ...schemaDefaults, ...options };
+  const { schemas } = options;
   const type = typeof payload;
-  const stringTypes = Object.keys(extraTypeMappings).filter(
-    (t) => extraTypeMappings[t].regex
+  const stringTypes = Object.keys(schemas).filter(
+    (t) => schemas[t].regex
   );
-  const objTypes = Object.keys(extraTypeMappings).filter(
-    (t) => extraTypeMappings[t].type
+  const objTypes = Object.keys(schemas).filter(
+    (t) => schemas[t].type
   );
 
   /**
@@ -33,12 +41,12 @@ function getSchema(payload, extraTypeMappings = {}) {
    * This provides a substantial performance improvement.
    */
   objTypes
-    .filter((typeName) => !extraTypeMappings[typeName].hydrated)
+    .filter((typeName) => !schemas[typeName].hydrated)
     .forEach(
       (typeName) =>
-        (extraTypeMappings[typeName].hydrated = hydrate(
-          extraTypeMappings[typeName].type,
-          extraTypeMappings
+        (schemas[typeName].hydrated = hydrate(
+          schemas[typeName].type,
+          schemas
         ))
     );
 
@@ -47,7 +55,7 @@ function getSchema(payload, extraTypeMappings = {}) {
    */
   if (type === "string") {
     for (const typeName of stringTypes) {
-      if (extraTypeMappings[typeName].regex.test(payload)) {
+      if (schemas[typeName].regex.test(payload)) {
         return typeName;
       }
     }
@@ -59,16 +67,16 @@ function getSchema(payload, extraTypeMappings = {}) {
     // TODO: Use multiple sample documents to infer this more accurately
     return "( string | null )";
   } else if (Array.isArray(payload)) {
-    return [getSchema(payload[0], extraTypeMappings)];
+    return [getSchema(payload[0], { schemas })];
   }
 
   /**
    * Identify special object types
    */
   for (const typeName of objTypes) {
-    const otherTypes = Object.assign({}, extraTypeMappings);
+    const otherTypes = Object.assign({}, schemas);
     delete otherTypes[typeName];
-    if (isOfType(payload, extraTypeMappings[typeName].hydrated)) {
+    if (isOfType(payload, schemas[typeName].hydrated)) {
       return typeName;
     }
   }
@@ -79,7 +87,7 @@ function getSchema(payload, extraTypeMappings = {}) {
   const types = {};
   for (const key in payload) {
     const value = payload[key];
-    types[key] = getSchema(value, extraTypeMappings);
+    types[key] = getSchema(value, { schemas });
   }
 
   return types;
@@ -135,34 +143,41 @@ function wrapAsTypedefComment(name, description, typeString) {
   return comment;
 }
 
+
+const serializeDefaults = {
+  schemas: {}
+};
+
 /**
  * Generates typedef comments for a payload, and all of the
  * subtypes included in extraTypeMappings
  * @param {string} name
  * @param {string} description
  * @param {Object} payload
- * @param {{[TypeName: string]: TypeSummary}} extraTypeMappings
+ * @param {{[TypeName: string]: TypeSummary}} schemas
  *
  * @returns {string}
  */
-function serialize(name, description, payload, extraTypeMappings = {}) {
+function serialize(name, description, payload, options = {}) {
+  options = { ...serializeDefaults, ...options };
+  const { schemas } = options;
   let comment = wrapAsTypedefComment(
     name,
     description,
-    serializeSchema(getSchema(payload, extraTypeMappings))
+    serializeSchema(getSchema(payload, { schemas }))
   );
 
-  const stringTypes = Object.keys(extraTypeMappings).filter(
-    (t) => extraTypeMappings[t].regex
+  const stringTypes = Object.keys(schemas).filter(
+    (t) => schemas[t].regex
   );
-  const objTypes = Object.keys(extraTypeMappings).filter(
-    (t) => extraTypeMappings[t].type
+  const objTypes = Object.keys(schemas).filter(
+    (t) => schemas[t].type
   );
 
   stringTypes.forEach((typeName) => {
     const subTypeComment = wrapAsTypedefComment(
       typeName,
-      extraTypeMappings[typeName].description,
+      schemas[typeName].description,
       "string"
     );
     comment += `\n\n${subTypeComment}`;
@@ -171,8 +186,8 @@ function serialize(name, description, payload, extraTypeMappings = {}) {
   objTypes.forEach((typeName) => {
     const subTypeComment = wrapAsTypedefComment(
       typeName,
-      extraTypeMappings[typeName].description,
-      serializeSchema(extraTypeMappings[typeName].type)
+      schemas[typeName].description,
+      serializeSchema(schemas[typeName].type)
     );
     comment += `\n\n${subTypeComment}`;
   });
@@ -199,23 +214,23 @@ function isOfType(obj, type) {
  * Takes a schema that includes subtypes and returns a schema
  * that includes only primitive values.
  * @param {Schema} payload
- * @param {{[TypeName: string]: TypeSummary}} extraMappings
+ * @param {{[TypeName: string]: TypeSummary}} schemas
  *
  * @returns {Schema}
  */
-function hydrate(payload, extraMappings = {}) {
-  const objTypes = Object.keys(extraMappings).filter(
-    (t) => extraMappings[t].type
+function hydrate(payload, schemas = {}) {
+  const objTypes = Object.keys(schemas).filter(
+    (t) => schemas[t].type
   );
-  const stringTypes = Object.keys(extraMappings).filter(
-    (t) => extraMappings[t].regex
+  const stringTypes = Object.keys(schemas).filter(
+    (t) => schemas[t].regex
   );
 
   const type = typeof payload;
   if (type === "string" && objTypes.includes(payload)) {
-    const otherTypes = Object.assign({}, extraMappings);
+    const otherTypes = Object.assign({}, schemas);
     delete otherTypes[payload];
-    return hydrate(extraMappings[payload].type, otherTypes);
+    return hydrate(schemas[payload].type, otherTypes);
   } else if (type === "string" && stringTypes.includes(payload)) {
     return "string";
   }
@@ -223,23 +238,26 @@ function hydrate(payload, extraMappings = {}) {
   if (type !== "object") {
     return payload;
   } else if (Array.isArray(payload)) {
-    return payload.map((elem) => hydrate(elem, extraMappings));
+    return payload.map((elem) => hydrate(elem, schemas));
   }
 
   const types = {};
   for (const key in payload) {
     const value = payload[key];
-    types[key] = hydrate(value, extraMappings);
+    types[key] = hydrate(value, schemas);
   }
 
   return types;
 }
+
+function deserialize(comment, options){}
 
 module.exports = {
   getSchema,
   serializeSchema,
   wrapAsTypedefComment,
   serialize,
+  deserialize,
   isOfType,
   hydrate,
 };
