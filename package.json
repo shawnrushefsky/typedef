@@ -1,6 +1,6 @@
 {
   "name": "typedef",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Generates a JSDoc @typedef from a given JSON payload",
   "main": "src/index.js",
   "scripts": {
