@@ -279,6 +279,7 @@ function parseObjectString(objString) {
   let currentNode;
   for (let i = 1; i < objString.length; i++) {
     const char = objString[i];
+    currentNode = getNode(result, stack);
     switch (char) {
       case ":":
         key = buffer;
@@ -286,7 +287,6 @@ function parseObjectString(objString) {
         break;
       case ",":
         const match = arrayType.exec(buffer);
-        currentNode = getNode(result, stack);
         if (match) {
           const { type } = match.groups;
           currentNode[key] = [type];
@@ -296,13 +296,11 @@ function parseObjectString(objString) {
         buffer = "";
         break;
       case "{":
-        currentNode = getNode(result, stack);
         stack.push(key);
         currentNode[key] = {};
         buffer = "";
         break;
       case "}":
-        currentNode = getNode(result, stack);
         if (buffer) {
           currentNode[key] = buffer;
         }
