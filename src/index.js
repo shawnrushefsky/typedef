@@ -39,7 +39,9 @@ function getSchema(payload, options = {}) {
     .filter((typeName) => !schemas[typeName].hydrated)
     .forEach(
       (typeName) =>
-        (schemas[typeName].hydrated = hydrate(schemas[typeName].schema, { schemas }))
+        (schemas[typeName].hydrated = hydrate(schemas[typeName].schema, {
+          schemas,
+        }))
     );
 
   /**
@@ -75,7 +77,7 @@ function getSchema(payload, options = {}) {
    * Recursively get types for all fields in the payload
    */
   const types = {};
-  Object.keys(payload).forEach(key => {
+  Object.keys(payload).forEach((key) => {
     types[key] = getSchema(payload[key], { schemas });
   });
 
@@ -195,15 +197,14 @@ function isOfType(obj, schema) {
   }
 }
 
-
 const hydrateDefaults = {
   schemas: {},
-}
+};
 
 /**
  * Takes a schema that includes subtypes and returns a schema
  * that includes only primitive values.
- * @param {Schema} payload  
+ * @param {Schema} payload
  * @param {Object} options
  * @param {{[TypeName: string]: TypeSummary}} options.schemas
  *
@@ -268,13 +269,14 @@ function getObjectString(rawTypeString) {
     .replace(/[\s\*]/g, "");
 }
 
-const arrayType = /array<(?<type>\w+)>/i;
+
 function parseObjectString(objString) {
+  const arrayType = /array<(?<type>\w+)>/i;
   const result = {};
   let buffer = "";
   let key;
   let stack = [];
-  let current = result;
+  let currentNode;
   for (let i = 1; i < objString.length; i++) {
     const char = objString[i];
     switch (char) {
@@ -284,25 +286,25 @@ function parseObjectString(objString) {
         break;
       case ",":
         const match = arrayType.exec(buffer);
-        current = getNode(result, stack);
+        currentNode = getNode(result, stack);
         if (match) {
           const { type } = match.groups;
-          current[key] = [type];
+          currentNode[key] = [type];
         } else if (buffer) {
-          current[key] = buffer;
+          currentNode[key] = buffer;
         }
         buffer = "";
         break;
       case "{":
-        current = getNode(result, stack);
+        currentNode = getNode(result, stack);
         stack.push(key);
-        current[key] = {};
-        current = current[key];
+        currentNode[key] = {};
         buffer = "";
         break;
       case "}":
+        currentNode = getNode(result, stack);
         if (buffer) {
-          current[key] = buffer;
+          currentNode[key] = buffer;
         }
         stack.pop();
         buffer = "";
@@ -317,12 +319,12 @@ function parseObjectString(objString) {
 }
 
 function getNode(obj, stack) {
-  let current = obj;
-  stack.forEach(key => {
-    current = current[key];
+  let currentNode = obj;
+  stack.forEach((key) => {
+    currentNode = currentNode[key];
   });
 
-  return current;
+  return currentNode;
 }
 
 module.exports = {
