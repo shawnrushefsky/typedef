@@ -271,7 +271,8 @@ function getObjectString(rawTypeString) {
 
 
 function parseObjectString(objString) {
-  const arrayType = /array<(?<type>\w+)>/i;
+  const arrayType1 = /array<(?<type>\w+)>/i;
+  const arrayType2 = /(?<type>\w+)\[\]/i;
   const result = {};
   let buffer = "";
   let key;
@@ -286,7 +287,7 @@ function parseObjectString(objString) {
         buffer = "";
         break;
       case ",":
-        const match = arrayType.exec(buffer);
+        const match = arrayType1.exec(buffer) || arrayType2.exec(buffer);
         if (match) {
           const { type } = match.groups;
           currentNode[key] = [type];
