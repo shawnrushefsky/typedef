@@ -37,9 +37,9 @@ function run() {
   const schemas = {};
   options["--extra"].forEach((element) => {
     const parsed = JSON.parse(element);
-    const stringTypes = Object.keys(parsed).filter((k) => parsed[k].regex);
+    const stringTypes = Object.keys(parsed).filter((k) => parsed[k].match);
     for (let typeName of stringTypes) {
-      parsed[typeName].regex = RegExp(parsed[typeName].regex);
+      parsed[typeName].match = RegExp(parsed[typeName].match);
     }
     Object.assign(schemas, parsed);
   });
@@ -50,7 +50,7 @@ function run() {
   } else {
     comment = JSON.stringify({
       [options["--name"]]: {
-        type: getSchema(payload, { schemas }),
+        schema: getSchema(payload, { schemas }),
         description: description,
       },
     });
