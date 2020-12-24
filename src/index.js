@@ -3,8 +3,8 @@ const assert = require("assert").strict;
 /**
  * @typedef {{
  * description: string,
- * regex: ( RegExp | undefined),
- * type: ( Schema | undefined)
+ * match: ( RegExp | undefined),
+ * schema: ( Schema | undefined)
  * }} TypeSummary
  */
 
@@ -28,8 +28,8 @@ function getSchema(payload, options = {}) {
   options = { ...schemaDefaults, ...options };
   const { schemas } = options;
   const type = typeof payload;
-  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].regex);
-  const objTypes = Object.keys(schemas).filter((t) => schemas[t].type);
+  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].match);
+  const objTypes = Object.keys(schemas).filter((t) => schemas[t].schema);
 
   /**
    * Cache the fully hydrated schema for each type.
@@ -39,7 +39,7 @@ function getSchema(payload, options = {}) {
     .filter((typeName) => !schemas[typeName].hydrated)
     .forEach(
       (typeName) =>
-        (schemas[typeName].hydrated = hydrate(schemas[typeName].type, schemas))
+        (schemas[typeName].hydrated = hydrate(schemas[typeName].schema, { schemas }))
     );
 
   /**
@@ -47,7 +47,7 @@ function getSchema(payload, options = {}) {
    */
   if (type === "string") {
     for (const typeName of stringTypes) {
-      if (schemas[typeName].regex.test(payload)) {
+      if (schemas[typeName].match.test(payload)) {
         return typeName;
       }
     }
@@ -66,8 +66,6 @@ function getSchema(payload, options = {}) {
    * Identify special object types
    */
   for (const typeName of objTypes) {
-    const otherTypes = Object.assign({}, schemas);
-    delete otherTypes[typeName];
     if (isOfType(payload, schemas[typeName].hydrated)) {
       return typeName;
     }
@@ -77,10 +75,9 @@ function getSchema(payload, options = {}) {
    * Recursively get types for all fields in the payload
    */
   const types = {};
-  for (const key in payload) {
-    const value = payload[key];
-    types[key] = getSchema(value, { schemas });
-  }
+  Object.keys(payload).forEach(key => {
+    types[key] = getSchema(payload[key], { schemas });
+  });
 
   return types;
 }
@@ -145,7 +142,8 @@ const serializeDefaults = {
  * @param {string} name
  * @param {string} description
  * @param {Object} payload
- * @param {{[TypeName: string]: TypeSummary}} schemas
+ * @param {Object} options
+ * @param {{[TypeName: string]: TypeSummary}} options.schemas
  *
  * @returns {string}
  */
@@ -158,8 +156,8 @@ function serialize(name, description, payload, options = {}) {
     serializeSchema(getSchema(payload, { schemas }))
   );
 
-  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].regex);
-  const objTypes = Object.keys(schemas).filter((t) => schemas[t].type);
+  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].match);
+  const objTypes = Object.keys(schemas).filter((t) => schemas[t].schema);
 
   stringTypes.forEach((typeName) => {
     const subTypeComment = wrapAsTypedefComment(
@@ -174,7 +172,7 @@ function serialize(name, description, payload, options = {}) {
     const subTypeComment = wrapAsTypedefComment(
       typeName,
       schemas[typeName].description,
-      serializeSchema(schemas[typeName].type)
+      serializeSchema(schemas[typeName].schema)
     );
     comment += `\n\n${subTypeComment}`;
   });
@@ -185,35 +183,43 @@ function serialize(name, description, payload, options = {}) {
 /**
  * Determines if a given object comforms to a type definition
  * @param {Object} obj
- * @param {Schema} type A fully hydrated schema
+ * @param {Schema} schema A fully hydrated schema
  */
-function isOfType(obj, type) {
-  const objType = getSchema(obj);
+function isOfType(obj, schema) {
+  const objSchema = getSchema(obj);
   try {
-    assert.deepStrictEqual(objType, type);
+    assert.deepStrictEqual(objSchema, schema);
     return true;
   } catch (e) {
     return false;
   }
 }
 
+
+const hydrateDefaults = {
+  schemas: {},
+}
+
 /**
  * Takes a schema that includes subtypes and returns a schema
  * that includes only primitive values.
- * @param {Schema} payload
- * @param {{[TypeName: string]: TypeSummary}} schemas
+ * @param {Schema} payload  
+ * @param {Object} options
+ * @param {{[TypeName: string]: TypeSummary}} options.schemas
  *
  * @returns {Schema}
  */
-function hydrate(payload, schemas = {}) {
-  const objTypes = Object.keys(schemas).filter((t) => schemas[t].type);
-  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].regex);
+function hydrate(payload, options = {}) {
+  options = { ...hydrateDefaults, ...options };
+  const { schemas } = options;
+  const objTypes = Object.keys(schemas).filter((t) => schemas[t].schema);
+  const stringTypes = Object.keys(schemas).filter((t) => schemas[t].match);
 
   const type = typeof payload;
   if (type === "string" && objTypes.includes(payload)) {
     const otherTypes = Object.assign({}, schemas);
     delete otherTypes[payload];
-    return hydrate(schemas[payload].type, otherTypes);
+    return hydrate(schemas[payload].schema, { schemas: otherTypes });
   } else if (type === "string" && stringTypes.includes(payload)) {
     return "string";
   }
@@ -221,13 +227,13 @@ function hydrate(payload, schemas = {}) {
   if (type !== "object") {
     return payload;
   } else if (Array.isArray(payload)) {
-    return payload.map((elem) => hydrate(elem, schemas));
+    return payload.map((elem) => hydrate(elem, { schemas }));
   }
 
   const types = {};
   for (const key in payload) {
     const value = payload[key];
-    types[key] = hydrate(value, schemas);
+    types[key] = hydrate(value, { schemas });
   }
 
   return types;
@@ -286,7 +292,6 @@ function parseObjectString(objString) {
           current[key] = buffer;
         }
         buffer = "";
-        // key = "";
         break;
       case "{":
         current = getNode(result, stack);
@@ -294,16 +299,13 @@ function parseObjectString(objString) {
         current[key] = {};
         current = current[key];
         buffer = "";
-        // key = "";
         break;
       case "}":
         if (buffer) {
           current[key] = buffer;
         }
         stack.pop();
-        // 
         buffer = "";
-        // key = "";
         break;
       default:
         buffer += char;
@@ -316,9 +318,9 @@ function parseObjectString(objString) {
 
 function getNode(obj, stack) {
   let current = obj;
-  for (const key of stack) {
+  stack.forEach(key => {
     current = current[key];
-  }
+  });
 
   return current;
 }
