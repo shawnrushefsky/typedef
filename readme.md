@@ -1,5 +1,7 @@
 # typedef
 
+> This project is under active development, and its API may change at any time without warning.
+
 This is a utility for generating jsdoc `@typedef` comments based on an input JSON payload.
 
 ## Install
